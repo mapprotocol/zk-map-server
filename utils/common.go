@@ -596,8 +596,91 @@ func makeBlockZKProofParams(conn *rpc.Client, block *types.Block) (map[string]in
 		return nil, err
 	}
 	fmt.Println(string(jsonData))
-	fmt.Println(pubkeyUnit64s)
 	return infos, nil
 }
+func makeBlockZKProofParams2(block *types.Block, blsPubs [][]byte) ([]byte, error) {
+	// 1. make the current pubkeys params
+	// validators count
+	count := len(blsPubs)
+	left := 0
+	if count < PUBLENGTH {
+		left = PUBLENGTH - count
+	}
+	blsPubs1 := keepedBlsPub(left)
+	blsPubs0 := append(blsPubs, blsPubs1...)
+	if len(blsPubs0) != PUBLENGTH {
+		return nil, errors.New("blsPubs count must be 8")
+	}
 
-// /////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	pubkeyUnit64s := make([][][][]uint64, len(blsPubs0))
+	for i, pubkey := range blsPubs0 {
+		fmt.Println("index", i, hex.EncodeToString(pubkey))
+		err, valUint64 := handlePubekeyField(pubkey)
+		if err != nil {
+			return nil, err
+		}
+		pubkeyUnit64s[i] = valUint64
+	}
+	fmt.Println("pubkeys", pubkeyUnit64s)
+	// 2. make the weight of the validators, pubkeys had same order for the weights
+	weights := getWeightField(count)
+	fmt.Println("weight....", weights)
+	// 3. make the bitmap for validator's signatrue
+	err, bitmaps := getBitmapField(count, block)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("bitmap", bitmaps)
+	// 4. make the signature for the block
+	err, sigData := getSignatureFromBlock(block)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("signature", hex.EncodeToString(sigData))
+	err, sigValueUint64 := handleSignatureField(sigData)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("signature data", sigValueUint64)
+	// 5. make the hash params, for block is the message for signature
+	err, hashParam, t0, t1 := handleBlockHashField(block)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("block hash param", hashParam)
+	// 6. make the commitment
+	commitment := handleCommitmentField(makeValidatorInfo(blsPubs), t0, t1)
+	fmt.Println("commitment", commitment)
+
+	// make the json data
+	fmt.Println("make the json data............")
+	infos := map[string]interface{}{}
+	infos["pubkeys"] = toString2(pubkeyUnit64s)
+	infos["weights"] = weights
+	infos["bit_map"] = bitmaps
+	infos["signature"] = toString(sigValueUint64)
+	infos["hash"] = toString(hashParam)
+	infos["commitment"] = []string{commitment}
+
+	fmt.Println("json data ....")
+	jsonData, err := json.Marshal(infos)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return nil, err
+	}
+	fmt.Println(string(jsonData))
+	return jsonData, nil
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+func GetProofParamsForBlock1(conn *rpc.Client, block *types.Block) ([]byte, error) {
+	num := block.Number()
+	// 1. make the current pubkeys params
+	err, blsPubs := getValidatorsBlsPubkey(conn, num)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	return makeBlockZKProofParams2(block, blsPubs)
+}
