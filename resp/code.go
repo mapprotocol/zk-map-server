@@ -3,6 +3,7 @@ package resp
 const (
 	CodeSuccess             = 2000
 	CodeParameterErr        = 3000
+	CodeProofParameterErr   = 3100
 	CodeExternalServerError = 4000
 	CodeInternalServerError = 5000
 )

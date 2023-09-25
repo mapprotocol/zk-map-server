@@ -1,14 +1,18 @@
 package logic
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/mapprotocol/zk-map-server/utils"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 
+	"github.com/mapprotocol/atlasclient"
 	"github.com/mapprotocol/zk-map-server/dao"
 	"github.com/mapprotocol/zk-map-server/entity"
 	"github.com/mapprotocol/zk-map-server/resource/log"
@@ -21,6 +25,7 @@ const statusPending = "pending"
 const (
 	URLStart  = "http://47.242.33.167:18888/start"
 	URLStatus = "http://47.242.33.167:18888/status"
+	DEVNETURL = "http://43.134.183.62:7445"
 )
 
 type response struct {
@@ -33,9 +38,11 @@ func GetProof(height string) (ret *entity.GetProofResponse, code int64) {
 	proof, err := dao.NewProofWithHeight(height).Get()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		// 1. 构建 start api 请求参数
-		// TODO mock 参数
-		body := generateStartBody(height)
-
+		body, err := generateStartBody(height)
+		if err != nil {
+			fmt.Println(err)
+			return nil, resp.CodeProofParameterErr
+		}
 		// 2. 发送 start api 请求 并解析数据
 		id, err := RequestStart(URLStart, body)
 		if err != nil {
@@ -89,8 +96,24 @@ func GetProof(height string) (ret *entity.GetProofResponse, code int64) {
 	return ret, resp.CodeSuccess
 }
 
-func generateStartBody(height string) string {
-	return fmt.Sprintf(`{"height": "%s"}`, height)
+func generateStartBody(height string) (string, error) {
+	h, err := strconv.ParseUint(height, 10, 64)
+	if err != nil {
+		return "", errors.New("convert string to uint64 failed:" + height + err.Error())
+	}
+	c, err := atlasclient.Dial(DEVNETURL)
+	if err != nil {
+		return "", err
+	}
+	block, err := c.MAPBlockByNumber(context.Background(), big.NewInt(int64(h)))
+	if err != nil {
+		return "", err
+	}
+	data, err := utils.GetProofParamsForBlock1(c.GetClient(), block)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func RequestStart(url, body string) (string, error) {
