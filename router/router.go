@@ -7,5 +7,5 @@ import (
 )
 
 func Register(engine *gin.Engine) {
-	engine.GET("/example", controller.Example)
+	engine.GET("/proof", controller.GetProof)
 }
