@@ -28,8 +28,8 @@ const (
 )
 
 const (
-	RPCAddressDevNetwork  = "http://43.134.183.62:7445"
-	RPCAddressTestNetwork = "http://43.134.183.62:7445"
+	RPCAddressDevNetwork  = "https://poc3-rpc.maplabs.io"
+	RPCAddressTestNetwork = "https://testnet-rpc.maplabs.io"
 	RPCAddressMainNetwork = "http://43.134.183.62:7445"
 )
 
