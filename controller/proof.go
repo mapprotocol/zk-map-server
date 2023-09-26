@@ -16,18 +16,22 @@ func GetProof(c *gin.Context) {
 		resp.ParameterErr(c, "")
 		return
 	}
+
+	if !logic.IsValidChainID(req.ChainID) {
+		resp.ParameterErr(c, "invalid chain_id")
+		return
+	}
 	if utils.IsEmpty(req.Height) {
 		resp.ParameterErr(c, "missing parameter height")
 		return
 	}
-
 	_, ok := new(big.Int).SetString(req.Height, 10)
 	if !ok {
 		resp.ParameterErr(c, "invalid height")
 		return
 	}
 
-	ret, code := logic.GetProof(req.Height)
+	ret, code := logic.GetProof(req.ChainID, req.Height)
 	if code != resp.CodeSuccess {
 		resp.Error(c, code)
 		return

@@ -3,7 +3,8 @@ package entity
 // ============================== request ==============================
 
 type GetProofRequest struct {
-	Height string `form:"height"`
+	ChainID uint16 `form:"chain_id"`
+	Height  string `form:"height"`
 }
 
 // ============================== response ==============================

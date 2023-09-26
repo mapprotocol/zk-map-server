@@ -25,8 +25,19 @@ const statusPending = "pending"
 const (
 	URLStart  = "http://47.242.33.167:18888/start"
 	URLStatus = "http://47.242.33.167:18888/status"
-	DEVNETURL = "http://43.134.183.62:7445"
 )
+
+const (
+	RPCAddressDevNetwork  = "http://43.134.183.62:7445"
+	RPCAddressTestNetwork = "http://43.134.183.62:7445"
+	RPCAddressMainNetwork = "http://43.134.183.62:7445"
+)
+
+var chainID2RPCAddress = map[uint16]string{
+	212:   RPCAddressTestNetwork,
+	213:   RPCAddressDevNetwork,
+	22776: RPCAddressMainNetwork,
+}
 
 type response struct {
 	Id     string      `json:"id"`
@@ -34,11 +45,11 @@ type response struct {
 	Result interface{} `json:"result"`
 }
 
-func GetProof(height string) (ret *entity.GetProofResponse, code int64) {
+func GetProof(chainID uint16, height string) (ret *entity.GetProofResponse, code int64) {
 	proof, err := dao.NewProofWithHeight(height).Get()
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		// 1. 构建 start api 请求参数
-		body, err := generateStartBody(height)
+		body, err := generateStartBody(chainID, height)
 		if err != nil {
 			fmt.Println(err)
 			return nil, resp.CodeProofParameterErr
@@ -46,7 +57,6 @@ func GetProof(height string) (ret *entity.GetProofResponse, code int64) {
 		// 2. 发送 start api 请求 并解析数据
 		id, err := RequestStart(URLStart, body)
 		if err != nil {
-			// TODO 如何处理错误, 是否更新 数据库中的
 			return nil, resp.CodeExternalServerError
 		}
 
@@ -96,12 +106,12 @@ func GetProof(height string) (ret *entity.GetProofResponse, code int64) {
 	return ret, resp.CodeSuccess
 }
 
-func generateStartBody(height string) (string, error) {
+func generateStartBody(chainID uint16, height string) (string, error) {
 	h, err := strconv.ParseUint(height, 10, 64)
 	if err != nil {
 		return "", errors.New("convert string to uint64 failed:" + height + err.Error())
 	}
-	c, err := atlasclient.Dial(DEVNETURL)
+	c, err := atlasclient.Dial(chainID2RPCAddress[chainID])
 	if err != nil {
 		return "", err
 	}
@@ -147,4 +157,9 @@ func RequestStatus(url, id string) (string, bool, error) {
 		return "", true, nil
 	}
 	return ret.Result.(string), false, nil
+}
+
+func IsValidChainID(chainID uint16) bool {
+	_, ok := chainID2RPCAddress[chainID]
+	return ok
 }
