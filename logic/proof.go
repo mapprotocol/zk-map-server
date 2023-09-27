@@ -3,8 +3,8 @@ package logic
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"math/big"
 	"net/http"
