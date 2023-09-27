@@ -164,7 +164,7 @@ func TestRequestStatus(t *testing.T) {
 			t.Logf("RequestStatus() got = %v", got)
 
 			result := entity.Result{}
-			_ = json.Unmarshal([]byte(got), &result)
+			_ = json.Unmarshal([]byte(got.(string)), &result)
 			t.Logf("RequestStatus() result = %+v", result)
 
 		})

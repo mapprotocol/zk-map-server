@@ -7,7 +7,7 @@ require (
 	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/mapprotocol/atlas v1.1.5
-	github.com/mapprotocol/atlasclient v0.0.0-20230925064758-e746bfafa050
+	github.com/mapprotocol/atlasclient v0.0.0-20230927070828-de4649410807
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.16.0

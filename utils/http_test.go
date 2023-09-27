@@ -1,9 +1,6 @@
 package utils
 
 import (
-	"errors"
-	"fmt"
-	"gorm.io/gorm"
 	"io"
 	"net/http"
 	"strings"
@@ -121,7 +118,7 @@ func TestGet(t *testing.T) {
 		{
 			name: "t-1",
 			args: args{
-				url:     "http://47.242.33.167:18888/status/297b256e-a8fe-47ed-8f0f-f0329cdf4faf",
+				url:     "http://47.242.33.167:18888/status/1ea555c4-b2fb-43ed-bbb9-d136c2ba05c4",
 				headers: nil,
 				body:    nil,
 			},
@@ -175,9 +172,4 @@ func TestPost(t *testing.T) {
 			t.Logf("Post() got = %v", string(got))
 		})
 	}
-}
-
-func TestErrorIs(t *testing.T) {
-	fmt.Println("============================== ", errors.Is(nil, nil))
-	fmt.Println("============================== ", errors.Is(nil, gorm.ErrRecordNotFound))
 }

@@ -10,18 +10,20 @@ type GetProofRequest struct {
 // ============================== response ==============================
 
 type GetProofResponse struct {
-	Id       string `json:"id"`
+	Height   string `json:"height"`
 	Status   uint8  `json:"status"`
-	Result   Result `json:"result"`
+	Result   Result `json:"result,omitempty"`
 	ErrorMsg string `json:"error_msg"`
 }
 
 type Result struct {
-	Proof struct {
-		PiA      []string   `json:"pi_a"`
-		PiB      [][]string `json:"pi_b"`
-		PiC      []string   `json:"pi_c"`
-		Protocol string     `json:"protocol"`
-	} `json:"proof"`
-	PublicInput []string `json:"public_input"`
+	Proof       *Proof   `json:"proof,omitempty"`
+	PublicInput []string `json:"public_input,omitempty"`
+}
+
+type Proof struct {
+	PiA      []string   `json:"pi_a"`
+	PiB      [][]string `json:"pi_b"`
+	PiC      []string   `json:"pi_c"`
+	Protocol string     `json:"protocol"`
 }

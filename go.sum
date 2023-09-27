@@ -535,8 +535,8 @@ github.com/mailru/easyjson v0.0.0-20190614124828-94de47d64c63/go.mod h1:C1wdFJiN
 github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e/go.mod h1:C1wdFJiN94OJF2b5HbByQZoLdCWB1Yqtg26g4irojpc=
 github.com/mapprotocol/atlas v1.1.5 h1:ajawSCYqgq5KbCVSdtcWpzxQcE4POTJF2iqlbrgMYr4=
 github.com/mapprotocol/atlas v1.1.5/go.mod h1:fwNsT7bxVQDTWBcFLRfxYPaeaxl0fddpVHgn2pOPCiE=
-github.com/mapprotocol/atlasclient v0.0.0-20230925064758-e746bfafa050 h1:9ZAbAg9bRlemlCXpAQO3s/cMKgxyvjzKKdSV5uEITQY=
-github.com/mapprotocol/atlasclient v0.0.0-20230925064758-e746bfafa050/go.mod h1:ShYHJjSf9Wgqp5bgkUHnVemF3pDWjLLXcfOKabUZXdg=
+github.com/mapprotocol/atlasclient v0.0.0-20230927070828-de4649410807 h1:zoGMoj4ik83k43vukr1SAqqYXpeULrIKYSWDqLlSYxs=
+github.com/mapprotocol/atlasclient v0.0.0-20230927070828-de4649410807/go.mod h1:ShYHJjSf9Wgqp5bgkUHnVemF3pDWjLLXcfOKabUZXdg=
 github.com/matryer/moq v0.0.0-20190312154309-6cfb0558e1bd/go.mod h1:9ELz6aaclSIGnZBoaSLZ3NAl1VTufbOrXBPvtcy6WiQ=
 github.com/mattn/go-colorable v0.0.9/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=
 github.com/mattn/go-colorable v0.1.0/go.mod h1:9vuHe8Xs5qXnSaW/c/ABM9alt+Vo+STaOChaDxuIBZU=

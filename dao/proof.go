@@ -6,25 +6,27 @@ import (
 )
 
 const (
-	ProofStatusError = iota + 1
-	ProofStatusPending
+	ProofStatusPending = iota + 1
+	ProofStatusError
 	ProofStatusCompleted
 )
 
 type Proof struct {
-	ID        uint64    `json:"id"`
-	Height    string    `json:"height"`
-	UniqueID  string    `json:"unique_id"`
-	Status    uint8     `json:"status"`
-	Proof     string    `json:"proof"`
-	ErrorMsg  string    `json:"error_msg"`
+	ID        uint64    `gorm:"primarykey" json:"id"`
+	ChainID   uint16    `gorm:"column:chain_id" json:"chain_id"`
+	Height    string    `gorm:"column:height" json:"height"`
+	UniqueID  string    `gorm:"column:unique_id" json:"unique_id"`
+	Status    uint8     `gorm:"column:status" json:"status"`
+	Proof     string    `gorm:"column:proof" json:"proof"`
+	ErrorMsg  string    `gorm:"column:error_msg" json:"error_msg"`
 	CreatedAt time.Time `gorm:"column:created_at" json:"created_at" sql:"datetime"`
 	UpdatedAt time.Time `gorm:"column:updated_at" json:"updated_at" sql:"datetime"`
 }
 
-func NewProofWithHeight(height string) *Proof {
+func NewProofWithHeight(chainID uint16, height string) *Proof {
 	return &Proof{
-		Height: height,
+		ChainID: chainID,
+		Height:  height,
 	}
 }
 
@@ -67,6 +69,12 @@ func (p *Proof) SetCompleted(proof string) error {
 	return p.Updates(np)
 }
 
+func (p *Proof) IsPending() bool {
+	return p.Status == ProofStatusPending
+}
+func (p *Proof) IsError() bool {
+	return p.Status == ProofStatusError
+}
 func (p *Proof) IsCompleted() bool {
 	return p.Status == ProofStatusCompleted
 }

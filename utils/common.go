@@ -13,6 +13,7 @@ import (
 	istanbulCore "github.com/mapprotocol/atlas/consensus/istanbul/core"
 	"github.com/mapprotocol/atlas/core/types"
 	blscrypto "github.com/mapprotocol/atlas/helper/bls"
+	"github.com/mapprotocol/zk-map-server/resource/log"
 	"math/big"
 	"strconv"
 	"strings"
@@ -24,6 +25,22 @@ var (
 
 func IsEmpty(s string) bool {
 	return len(strings.TrimSpace(s)) == 0
+}
+
+func IsDuplicateError(err string) bool {
+	return strings.Contains(err, "Duplicate entry")
+}
+
+func Go(fn func()) {
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Logger().WithField("error", r).Error("recover failed")
+			}
+		}()
+
+		fn()
+	}()
 }
 
 // /////////////////////////////////////////////////////////////////////////////////////////////////////////////ß
@@ -672,7 +689,7 @@ func makeBlockZKProofParams2(block *types.Block, blsPubs [][]byte) ([]byte, erro
 	return jsonData, nil
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 func GetProofParamsForBlock1(conn *rpc.Client, block *types.Block) ([]byte, error) {
 	num := block.Number()
 	// 1. make the current pubkeys params

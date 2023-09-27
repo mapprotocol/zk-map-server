@@ -4,24 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mapprotocol/zk-map-server/utils"
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mapprotocol/atlasclient"
 	"github.com/mapprotocol/zk-map-server/dao"
 	"github.com/mapprotocol/zk-map-server/entity"
 	"github.com/mapprotocol/zk-map-server/resource/log"
 	"github.com/mapprotocol/zk-map-server/resp"
+	"github.com/mapprotocol/zk-map-server/utils"
 )
 
-const statusPending = "pending"
+const Interval = 2 * time.Second
 
-// todo from config
 const (
 	URLStart  = "http://47.242.33.167:18888/start"
 	URLStatus = "http://47.242.33.167:18888/status"
@@ -29,8 +29,14 @@ const (
 
 const (
 	RPCAddressDevNetwork  = "http://43.134.183.62:7445"
-	RPCAddressTestNetwork = "http://43.134.183.62:7445"
-	RPCAddressMainNetwork = "http://43.134.183.62:7445"
+	RPCAddressTestNetwork = "https://testnet-rpc.maplabs.io"
+	RPCAddressMainNetwork = "https://rpc.maplabs.io"
+)
+
+const (
+	statusPending   = "pending"
+	statusFailed    = "failed"
+	statusCompleted = "completed"
 )
 
 var chainID2RPCAddress = map[uint16]string{
@@ -46,55 +52,112 @@ type response struct {
 }
 
 func GetProof(chainID uint16, height string) (ret *entity.GetProofResponse, code int64) {
-	proof, err := dao.NewProofWithHeight(height).Get()
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// 1. 构建 start api 请求参数
-		body, err := generateStartBody(chainID, height)
-		if err != nil {
-			fmt.Println(err)
-			return nil, resp.CodeProofParameterErr
-		}
-		// 2. 发送 start api 请求 并解析数据
-		id, err := RequestStart(URLStart, body)
-		if err != nil {
-			return nil, resp.CodeExternalServerError
-		}
-
-		// 3. 将获取的 id 写入数据库
-		pf := &dao.Proof{
-			Height:   height,
-			UniqueID: id,
-		}
-		if err = pf.Create(); err != nil {
-			log.Logger().WithField("height", height).WithField("uniqueID", id).
-				WithField("error", err).Error("failed to create proof")
-			return nil, resp.CodeInternalServerError
-		}
-
-		// 4. TODO 根据 id 获取 proof (使用异步或者定时任务或者两者结合)
-		status, pending, err := RequestStatus(URLStatus, id)
-		if err != nil {
-			if err := dao.NewProofWithUniqueID(id).SetError(err.Error()); err != nil {
-				log.Logger().WithField("uniqueID", id).WithField("error", err).Error("failed to update proof")
-				return
-			}
-		}
-		if pending {
-			// TODO 稍后重试
-		}
-		if err := dao.NewProofWithUniqueID(id).SetCompleted(status); err != nil {
-			log.Logger().WithField("uniqueID", id).
-				WithField("proof", status).WithField("error", err).Error("failed to update proof")
-			return
-		}
-	}
-	if err != nil {
+	proof, err := dao.NewProofWithHeight(chainID, height).Get()
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.Logger().WithField("height", height).WithField("error", err).Error("failed to get proof")
 		return nil, resp.CodeInternalServerError
 	}
 
+	if errors.Is(err, gorm.ErrRecordNotFound) || proof.IsError() {
+		body, err := generateStartBody(chainID, height)
+		if err != nil {
+			log.Logger().WithField("height", height).WithField("chainID", chainID).
+				WithField("error", err).Error("failed to generate start body")
+			return nil, resp.CodeProofParameterErr
+		}
+
+		id, err := RequestStart(URLStart, body)
+		if err != nil {
+			log.Logger().WithField("body", body).WithField("error", err).Error("failed to request start")
+			return nil, resp.CodeExternalServerError
+		}
+
+		if proof.IsError() {
+			newProof := &dao.Proof{
+				UniqueID: id,
+				Status:   dao.ProofStatusPending,
+			}
+			if err = dao.NewProofWithHeight(chainID, height).Updates(newProof); err != nil {
+				log.Logger().WithField("height", height).WithField("uniqueID", id).
+					WithField("error", err).Error("failed to create proof")
+				return nil, resp.CodeInternalServerError
+			}
+		} else {
+			pf := &dao.Proof{
+				ChainID:  chainID,
+				Height:   height,
+				UniqueID: id,
+				Status:   dao.ProofStatusPending,
+			}
+			err = pf.Create()
+			if err != nil && !utils.IsDuplicateError(err.Error()) {
+				log.Logger().WithField("chainID", chainID).WithField("height", height).
+					WithField("uniqueID", id).WithField("error", err).Error("failed to create proof")
+				return nil, resp.CodeInternalServerError
+			}
+			if err != nil && utils.IsDuplicateError(err.Error()) {
+				log.Logger().WithField("chainID", chainID).WithField("height", height).
+					WithField("uniqueID", id).WithField("error", err).Warn("duplicated key")
+				ret = &entity.GetProofResponse{
+					Height: height,
+					Status: dao.ProofStatusPending,
+				}
+				return ret, resp.CodeSuccess
+			}
+		}
+		utils.Go(func() {
+			ticker := time.NewTicker(Interval)
+			for range ticker.C {
+				log.Logger().WithField("uniqueID", id).Info("requesting proof")
+				pf, err := dao.NewProofWithUniqueID(id).Get()
+				if err != nil {
+					log.Logger().WithField("uniqueID", id).WithField("error", err).Error("failed to get proof")
+					return
+				}
+				if !pf.IsPending() {
+					return
+				}
+
+				result, status, err := RequestStatus(URLStatus, id)
+				if err != nil {
+					if err := dao.NewProofWithUniqueID(id).SetError(err.Error()); err != nil {
+						log.Logger().WithField("uniqueID", id).WithField("error", err).Error("failed to update proof")
+						return
+					}
+				}
+
+				switch status {
+				case statusPending:
+					log.Logger().WithField("uniqueID", id).Info("proof status is pending")
+					continue
+				case statusCompleted:
+					log.Logger().WithField("uniqueID", id).Info("proof status is completed")
+					if err := dao.NewProofWithUniqueID(id).SetCompleted(result.(string)); err != nil {
+						log.Logger().WithField("uniqueID", id).
+							WithField("proof", result).WithField("error", err).Error("failed to set completed")
+						return
+					}
+				case statusFailed:
+					log.Logger().WithField("uniqueID", id).WithField("result", result).Info("proof status is failed")
+					if err := dao.NewProofWithUniqueID(id).SetError(statusFailed); err != nil {
+						log.Logger().WithField("uniqueID", id).WithField("error", err).Error("failed to set error")
+						return
+					}
+				default:
+					log.Logger().WithField("uniqueID", id).WithField("status", status).WithField("result", result).Info("status is unknown")
+				}
+			}
+		})
+
+		ret = &entity.GetProofResponse{
+			Height: height,
+			Status: dao.ProofStatusPending,
+		}
+		return ret, resp.CodeSuccess
+	}
+
 	ret = &entity.GetProofResponse{
-		Id:       proof.UniqueID,
+		Height:   height,
 		Status:   proof.Status,
 		ErrorMsg: proof.ErrorMsg,
 	}
@@ -142,21 +205,18 @@ func RequestStart(url, body string) (string, error) {
 	return ret.Id, nil
 }
 
-func RequestStatus(url, id string) (string, bool, error) {
+func RequestStatus(url, id string) (interface{}, string, error) {
 	url = fmt.Sprintf("%s/%s", url, id)
 	bs, err := utils.Get(url, nil, nil)
 	if err != nil {
-		return "", false, err
+		return "", "", err
 	}
 
 	ret := &response{}
 	if err := json.Unmarshal(bs, ret); err != nil {
-		return "", false, err
+		return "", "", err
 	}
-	if ret.Status == statusPending {
-		return "", true, nil
-	}
-	return ret.Result.(string), false, nil
+	return ret.Result, ret.Status, nil
 }
 
 func IsValidChainID(chainID uint16) bool {
