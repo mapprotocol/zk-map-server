@@ -1,7 +1,11 @@
 package utils
 
 import (
+	"context"
+	"fmt"
+	"github.com/mapprotocol/atlasclient"
 	"io"
+	"math/big"
 	"net/http"
 	"strings"
 	"testing"
@@ -172,4 +176,24 @@ func TestPost(t *testing.T) {
 			t.Logf("Post() got = %v", string(got))
 		})
 	}
+}
+
+func Test01(t *testing.T) {
+	c, err := atlasclient.Dial("http://43.134.183.62:7445")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	h := 3400
+	block, err := c.MAPBlockByNumber(context.Background(), big.NewInt(int64(h)))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	data, err := GetProofParamsForBlock1(c.GetClient(), block)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(len(data))
 }
