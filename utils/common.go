@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	PUBLENGTH = 8
+	PUBLENGTH = 128
 )
 
 func IsEmpty(s string) bool {
@@ -527,7 +527,7 @@ func makeValidatorInfo(blsPubkeys [][]byte) []byte {
 		data = append(data, weight...)
 	}
 	data = append(data, data1...)
-	fmt.Println("valinfo len", len(data), hex.EncodeToString(data[:]))
+	//fmt.Println("valinfo len", len(data), hex.EncodeToString(data[:]))
 	return data
 }
 
@@ -558,14 +558,14 @@ func makeBlockZKProofParams(conn *rpc.Client, block *types.Block) (map[string]in
 
 	pubkeyUnit64s := make([][][][]uint64, len(blsPubs0))
 	for i, pubkey := range blsPubs0 {
-		fmt.Println("index", i, hex.EncodeToString(pubkey))
+		//fmt.Println("index", i, hex.EncodeToString(pubkey))
 		err, valUint64 := handlePubekeyField(pubkey)
 		if err != nil {
 			return nil, err
 		}
 		pubkeyUnit64s[i] = valUint64
 	}
-	fmt.Println("pubkeys", pubkeyUnit64s)
+	//fmt.Println("pubkeys", pubkeyUnit64s)
 	// 2. make the weight of the validators, pubkeys had same order for the weights
 	weights := getWeightField(count)
 	fmt.Println("weight....", weights)
@@ -631,43 +631,43 @@ func makeBlockZKProofParams2(block *types.Block, blsPubs [][]byte) ([]byte, erro
 
 	pubkeyUnit64s := make([][][][]uint64, len(blsPubs0))
 	for i, pubkey := range blsPubs0 {
-		fmt.Println("index", i, hex.EncodeToString(pubkey))
+		//fmt.Println("index", i, hex.EncodeToString(pubkey))
 		err, valUint64 := handlePubekeyField(pubkey)
 		if err != nil {
 			return nil, err
 		}
 		pubkeyUnit64s[i] = valUint64
 	}
-	fmt.Println("pubkeys", pubkeyUnit64s)
+	//fmt.Println("pubkeys", pubkeyUnit64s)
 	// 2. make the weight of the validators, pubkeys had same order for the weights
 	weights := getWeightField(count)
-	fmt.Println("weight....", weights)
+	//fmt.Println("weight....", weights)
 	// 3. make the bitmap for validator's signatrue
 	err, bitmaps := getBitmapField(count, block)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("bitmap", bitmaps)
+	//fmt.Println("bitmap", bitmaps)
 	// 4. make the signature for the block
 	err, sigData := getSignatureFromBlock(block)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("signature", hex.EncodeToString(sigData))
+	//fmt.Println("signature", hex.EncodeToString(sigData))
 	err, sigValueUint64 := handleSignatureField(sigData)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("signature data", sigValueUint64)
+	//fmt.Println("signature data", sigValueUint64)
 	// 5. make the hash params, for block is the message for signature
 	err, hashParam, t0, t1 := handleBlockHashField(block)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("block hash param", hashParam)
+	//fmt.Println("block hash param", hashParam)
 	// 6. make the commitment
 	commitment := handleCommitmentField(makeValidatorInfo(blsPubs), t0, t1)
-	fmt.Println("commitment", commitment)
+	//fmt.Println("commitment", commitment)
 
 	// make the json data
 	fmt.Println("make the json data............")

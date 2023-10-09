@@ -23,8 +23,8 @@ import (
 const Interval = 2 * time.Second
 
 const (
-	URLStart  = "http://47.242.33.167:18888/start"
-	URLStatus = "http://47.242.33.167:18888/status"
+	URLStart  = "http://47.242.33.167:19999/start"
+	URLStatus = "http://47.242.33.167:19999/status"
 )
 
 const (
