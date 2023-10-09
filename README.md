@@ -46,7 +46,7 @@ GET
 | Parameters | Type   | Explanation              |
 |------------|--------|--------------------------|
 | height     | string |                          |
-| status     | number | 1: Pending, 2: Completed |
+| status     | number | 1: Pending, 3: Completed |
 | result     | object |                          |
 | error_msg  | string |                          |
 
